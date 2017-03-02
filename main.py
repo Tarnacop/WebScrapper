@@ -1,6 +1,9 @@
 from selenium import webdriver
+import selenium.webdriver.support.expected_conditions as EC
+import utils
 import getpass
 import time
+import sys
 
 # Set the path to chromedriver
 path_to_chromedriver = 'res/chromedriver/chromedriver.exe'
@@ -8,102 +11,116 @@ path_to_chromedriver = 'res/chromedriver/chromedriver.exe'
 # Create the browser with the given driver
 browser = webdriver.Chrome(executable_path=path_to_chromedriver)
 
+print("---------------------------------LOG------------------------------------")
 # Set the url and open it
 url = 'http://uob-metalib.hosted.exlibrisgroup.com/V/?func=native-link&resource=BHM02155'
 browser.get(url)
 
-time.sleep(10)
+utils.wait_by_id(browser, 'j_submit', EC.element_to_be_clickable, "ERROR LOADING CANVAS PAGE: CHECK INTERNET CONNECTION?")
+
+print("URL OPENED SUCCESSFULLY!")
+print("CONFIGURATION PART")
 
 # Store user and password
 user = input('Please provide your uob id: ')
 print(user)
+print("ID provided!")
 pwd = getpass.getpass('Please provide your uob password: ')
 print(pwd)
+print("Password provided!")
 
-# Complete the user field
-browser.find_element_by_id('j_username').clear()
-browser.find_element_by_id('j_username').send_keys(user)
+#Prompt for search term
+searchterm = input("Provide the search term:")
+print(searchterm)
+print("SEARCH TERM PROVIDED")
 
-time.sleep(4)
+# Prompt for date
+print("Provide input for the starting date")
+valid = False
+fromDateMonth = "01"
+fromDateYear = "1996"
+fromDateDay = "01"
+while not valid:
+    fromDateMonth = input('Please input a valid month in format MM. PRESS ENTER IF YOU WANT THE DEFAULT VALUE:')
+    if not fromDateMonth:
+        fromDateMonth = "01"
+    valid = utils.checkmonth(fromDateMonth)
 
-# Complete the password field
-browser.find_element_by_id('j_password').clear()
-browser.find_element_by_id('j_password').send_keys(pwd)
+valid = False
+while not valid:
+    fromDateYear = input('Please input a valid year in format YYYY. PRESS ENTER IF YOU WANT THE DEFAULT VALUE:')
+    if not fromDateYear:
+        fromDateYear = "1996"
+    valid = utils.checkyear(fromDateYear)
 
-time.sleep(4)
+valid = False
+while not valid:
+    fromDateDay = input('Please input a valid day in format DD. PRESS ENTER IF YOU WANT THE DEFAULT VALUE:')
+    if not fromDateDay:
+        fromDateDay = "01"
+    valid = utils.checkday(fromDateDay, fromDateMonth, fromDateYear)
 
-browser.find_element_by_id('j_submit').click()
+fromDate = fromDateMonth + "/" + fromDateDay + "/" + fromDateYear
+print(fromDate)
+print("Beginning date provided!")
+
+print("Provide input for the ending date")
+valid = False
+toDateMonth = "08"
+toDateYear = "2015"
+toDateDay = "31"
+while not valid:
+    toDateMonth = input('Please input a valid month in format MM. PRESS ENTER IF YOU WANT THE DEFAULT VALUE:')
+    if not toDateMonth:
+        toDateMonth = "08"
+    valid = utils.checkmonth(toDateMonth)
+
+valid = False
+while not valid:
+    toDateYear = input('Please input a valid year in format YYYY. PRESS ENTER IF YOU WANT THE DEFAULT VALUE:')
+    if not toDateYear:
+        toDateYear = "2015"
+    valid = utils.checkyear(toDateYear)
+
+valid = False
+while not valid:
+    toDateDay = input('Please input a valid day in format DD. PRESS ENTER IF YOU WANT THE DEFAULT VALUE:')
+    if not toDateDay:
+        toDateDay = "31"
+    valid = utils.checkday(toDateDay, toDateMonth, toDateYear)
+
+toDate = toDateMonth + "/" + toDateDay + "/" + toDateYear
+print(toDate)
+print("Ending date provided!")
+
+# Back to selenium
+
+# Login to canvas
+utils.canvaslogin(browser, user, pwd)
+
+# Go to news page
+utils.gotonews(browser)
+
+# Search the term on the page
+utils.searchpage(browser, searchterm, fromDate, toDate)
+
+# Check if No Documents were found for the search
+
+utils.check_no_documents(browser)
+
+# Check if too many documents were found for the search
+
+utils.check_many_results(browser)
+
+# TODO - CREATE THE MAIN LOOP
+# TODO - CHANGE THE SEARCH TERMS
+# TODO - CREATE THE LOOP FOR MONTHS
+# TODO - CREATE THE LOOP FOR RESULTS
+
+utils.manage_download(browser)
+
 
 time.sleep(10)
-
-# Input search terms
-browser.find_element_by_name('searchTerms1').clear()
-browser.find_element_by_name('searchTerms1').send_keys('balloon')
-
-time.sleep(10)
-
-# Anywhere in the text
-browser.find_element_by_xpath('//*[@id="simpleSrchSel"]/option[1]').click()
-
-time.sleep(5)
-
-# Custom date
-browser.find_element_by_xpath('//*[@id="specifyDateDefaultStyle"]/option[12]').click()
-
-time.sleep(5)
-
-# Set custom date (the input will be the starting year)
-print("Now choose the starting date: ")
-fromDateMonth = input("Input the month (mm format): ")
-fromDateDay = input("Input the day (dd format): ")
-fromDateYear = input("Input the year (yyyy format): ")
-
-browser.find_element_by_id('fromDate').clear()
-browser.find_element_by_id('fromDate').send_keys(fromDateMonth + '/' + fromDateDay + '/' + fromDateYear)
-
-print("Now choose the end date: ")
-toDateMonth = input("Input the month (mm format): ")
-toDateDay = input("Input the day (dd format): ")
-toDateYear = input("Input the year (yyyy format): ")
-
-browser.find_element_by_id('toDate').clear()
-browser.find_element_by_id('toDate').send_keys(toDateMonth + '/' + toDateDay + '/' + toDateYear)
-
-time.sleep(2)
-
-browser.find_element_by_xpath('//*[@id="sourceSelectDDStyle"]/option[4]').click()
-
-time.sleep(2)
-
-if browser.find_element_by_id('groupDuplicates').is_selected() != True:
-    browser.find_element_by_id('groupDuplicates').click()
-
-time.sleep(1)
-
-if browser.find_element_by_id('includeWireChkBoxStyle').is_selected() == True:
-    browser.find_element_by_id('includeWireChkBoxStyle').click()
-
-time.sleep(1)
-
-if browser.find_element_by_id('includeObituariesChkBoxStyle').is_selected() != True:
-    browser.find_element_by_id('includeObituariesChkBoxStyle').click()
-
-time.sleep(1)
-
-if browser.find_element_by_id('includeWebsitesChkBoxStyle').is_selected() != True:
-    browser.find_element_by_id('includeWebsitesChkBoxStyle').click()
-
-time.sleep(1)
-
-if browser.find_element_by_id('includeShortDocsChkBoxStyle').is_selected() == True:
-    browser.find_element_by_id('includeShortDocsChkBoxStyle').click()
-
-time.sleep(1)
-
-browser.find_element_by_id('enableSearchImg').click()
-
-time.sleep(10)
-
 # time.sleep(10)
 
 # browser.quit()
