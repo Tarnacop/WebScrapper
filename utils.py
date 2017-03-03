@@ -224,10 +224,7 @@ def check_no_documents(browser):
     try:
         browser.find_element_by_xpath('//*[@id="results"]/h1')
         # TODO - start the search for another term again?!
-        print("NO RESULTS FOUND. FINISHING THE SEARCH!")
-        browser.quit()
-        print("--------------------END OF LOG-------------------------")
-        sys.exit(0)
+        print("NO RESULTS FOUND")
     except NoSuchElementException:
         pass
 
@@ -242,7 +239,7 @@ def check_many_results(browser):
         wait_by_xpath(browser, '(//*[@id="firstbtn"])[2]', EC.element_to_be_clickable,
                       "COULD NOT CLICK THE 'RETRIEVE RESULTS' BUTTON.")
         browser.find_element_by_xpath('(//*[@id="firstbtn"])[2]').click()
-        print("3000+ RESULTS FOUND. RETRIEVE RESULTS PRESSED.")
+        print("3000+ RESULTS FOUND\nRETRIEVE RESULTS PRESSED")
 
     except NoSuchElementException:
         pass
@@ -250,9 +247,7 @@ def check_many_results(browser):
 
 # END OF check_many_results FUNCTION
 
-# TODO - CHECK FOR THE SIMILARITY ERROR
 def manage_download(browser):
-
     """Manage the download"""
     wait_by_id(browser, 'TotalCountDiv', EC.presence_of_element_located,
                "ERROR LOADING THE RESULTS PAGE: MAYBE INTERNET CONNECTION PROBLEM?")
@@ -265,213 +260,165 @@ def manage_download(browser):
     search_result_count = int(search_result_string)
     print(search_result_count)
 
-    if (search_result_count <= 500):
+    error = False
+    if search_result_count <= 500:
         initial = 1
         final = search_result_count
 
         limit = str(initial) + '-' + str(final)
-        print(limit) #TODO - CREATE LOG
+        print(limit)  # TODO - CREATE LOG
 
-        # Press download section
-        browser.find_element_by_id('delivery_DnldRender').click()
-        time.sleep(5)
-
-        # Press Download Options
-        browser.find_element_by_xpath('//*[@id="tabs"]/ul/li[1]/a').click()
-
-        time.sleep(1)
-
-        # Set "Select Items"
-        if not browser.find_element_by_id('sel').is_selected():
-            browser.find_element_by_id('sel').click()
-
-        time.sleep(1)
-
-        browser.find_element_by_id('rangetextbox').clear()
-        browser.find_element_by_id('rangetextbox').send_keys(limit)
-
-        # Press Page Options
-        browser.find_element_by_xpath('//*[@id="tabs"]/ul/li[2]/a').click()
-
-        time.sleep(1)
-
-        # Set Cover Page true if it is not set
-        if not browser.find_element_by_id('cvpg').is_selected():
-            browser.find_element_by_id('cvpg').click()
-
-        time.sleep(1)
-
-        # Set List of included documents true if it is not set
-        if not browser.find_element_by_id('inclDocs').is_selected():
-            browser.find_element_by_id('inclDocs').click()
-
-        time.sleep(1)
-
-        # Set End Page true if it is not set
-        if not browser.find_element_by_id('endpg').is_selected():
-            browser.find_element_by_id('endpg').click()
-
-        time.sleep(1)
-
-        # Set Each Document on a new page if it is not set
-        if not browser.find_element_by_id('docnewpg').is_selected():
-            browser.find_element_by_id('docnewpg').click()
-
-        time.sleep(1)
-
-        # Press Format Options
-        browser.find_element_by_xpath('//*[@id="tabs"]/ul/li[3]/a').click()
-
-        time.sleep(1)
-
-        # Set document format to generic
-        browser.find_element_by_xpath('//*[@id="delFmt"]/option[3]').click()
-
-        time.sleep(1)
-
-        # Set font options to arial
-        browser.find_element_by_xpath('//*[@id="delFontType"]/option[1]').click()
-
-        time.sleep(1)
-
-        # Set Search terms in bold type to true, if it is false
-        if not browser.find_element_by_id('termBold').is_selected():
-            browser.find_element_by_id('termBold').click()
-
-        time.sleep(1)
-
-        # Set Search terms underlined to false, if it is true
-        if browser.find_element_by_id('termUnld').is_selected():
-            browser.find_element_by_id('termUnld').click()
-
-        time.sleep(1)
-
-        # Set deliver in two columns to false, if it is true
-        if browser.find_element_by_id('enhancedDelOption').is_selected():
-            browser.find_element_by_id('enhancedDelOption').click()
-
-        time.sleep(1)
-
-        # Press download
-        browser.find_element_by_xpath('//*[@id="deliv-dialogbox"]/form/div[2]/div/span[1]/a').click()
+        download(browser, limit, error)
 
         try:
             WebDriverWait(browser, 600).until(EC.element_to_be_clickable((By.ID, 'closeBtn')))
+            browser.find_element_by_id('closeBtn').click()
         except TimeoutException:
             print("ERROR LOADING THE DOWNLOAD PAGE: MAYBE INTERNET CONNECTION PROBLEM?")
             log_errors.write("ERROR LOADING THE DOWNLOAD PAGE: MAYBE INTERNET CONNECTION PROBLEM?" + '\n')
 
-        browser.find_element_by_id('closeBtn').click()
-
         wait_random_time()
+        browser.find_element_by_xpath('//*[@id="editsearch"]/span/a').click()
     else:
         initial = 1
         final = 500
-        while final <= search_result_count:
+        while initial <= search_result_count:
             limit = str(initial) + '-' + str(final)
-            print(limit) #TODO - CREATE LOG
+            print(limit)  # TODO - CREATE LOG
 
-            # Press download section
-            browser.find_element_by_id('delivery_DnldRender').click()
-            time.sleep(5)
+            download(browser, limit, error)
 
-            # Press Download Options
-            browser.find_element_by_xpath('//*[@id="tabs"]/ul/li[1]/a').click()
+            # Wait for the closeBtn to show-up: if it does not show up, check for an error
+            try:
+                WebDriverWait(browser, 600).until(EC.element_to_be_clickable((By.ID, 'closeBtn')))
+                browser.find_element_by_id('closeBtn').click()
 
-            time.sleep(1)
+                error = False
+            except TimeoutException:
+                try:
+                    error_msg = str(browser.find_element_by_id('errorAlign').get_attribute('innerHTML'))
+                    new_error_msg = error_msg.replace('.', '')
+                    search_result_count = [int(i) for i in new_error_msg.split() if i.isdigit()][0]
 
-            # Set "Select Items"
-            if not browser.find_element_by_id('sel').is_selected():
-                browser.find_element_by_id('sel').click()
+                    error = True
+                    print(
+                        "After similarity analysis, the document number count is now " +
+                        str(search_result_count) +
+                        " . One or more of the document numbers you entered fell outside that range."
+                    )
+                except NoSuchElementException:
+                    print("ERROR LOADING THE DOWNLOAD PAGE: MAYBE INTERNET CONNECTION PROBLEM?")
+                    log_errors.write("ERROR LOADING THE DOWNLOAD PAGE: MAYBE INTERNET CONNECTION PROBLEM?" + '\n')
+                    # TODO - DO SOMETHING FOR ERRORS LIKE KILL SCRIPT
 
-            time.sleep(1)
-
-            browser.find_element_by_id('rangetextbox').clear()
-            browser.find_element_by_id('rangetextbox').send_keys(limit)
-
-            # Press Page Options
-            browser.find_element_by_xpath('//*[@id="tabs"]/ul/li[2]/a').click()
-
-            time.sleep(1)
-
-            # Set Cover Page true if it is not set
-            if not browser.find_element_by_id('cvpg').is_selected():
-                browser.find_element_by_id('cvpg').click()
-
-            time.sleep(1)
-
-            # Set List of included documents true if it is not set
-            if not browser.find_element_by_id('inclDocs').is_selected():
-                browser.find_element_by_id('inclDocs').click()
-
-            time.sleep(1)
-
-            # Set End Page true if it is not set
-            if not browser.find_element_by_id('endpg').is_selected():
-                browser.find_element_by_id('endpg').click()
-
-            time.sleep(1)
-
-            # Set Each Document on a new page if it is not set
-            if not browser.find_element_by_id('docnewpg').is_selected():
-                browser.find_element_by_id('docnewpg').click()
-
-            time.sleep(1)
-
-            # Press Format Options
-            browser.find_element_by_xpath('//*[@id="tabs"]/ul/li[3]/a').click()
-
-            time.sleep(1)
-
-            # Set document format to generic
-            browser.find_element_by_xpath('//*[@id="delFmt"]/option[3]').click()
-
-            time.sleep(1)
-
-            # Set font options to arial
-            browser.find_element_by_xpath('//*[@id="delFontType"]/option[1]').click()
-
-            time.sleep(1)
-
-            # Set Search terms in bold type to true, if it is false
-            if not browser.find_element_by_id('termBold').is_selected():
-                browser.find_element_by_id('termBold').click()
-
-            time.sleep(1)
-
-            # Set Search terms underlined to false, if it is true
-            if browser.find_element_by_id('termUnld').is_selected():
-                browser.find_element_by_id('termUnld').click()
-
-            time.sleep(1)
-
-            # Set deliver in two columns to false, if it is true
-            if browser.find_element_by_id('enhancedDelOption').is_selected():
-                browser.find_element_by_id('enhancedDelOption').click()
-
-            time.sleep(1)
-
-            # Press download
-            browser.find_element_by_xpath('//*[@id="deliv-dialogbox"]/form/div[2]/div/span[1]/a').click()
-
+            if not error:
+                initial += 500
             difference = search_result_count - final
-            initial += 500
             if difference <= 500:
                 final += difference
             else:
                 final += 500
 
-            try:
-                WebDriverWait(browser, 600).until(EC.element_to_be_clickable((By.ID, 'closeBtn')))
-            except TimeoutException:
-                print("ERROR LOADING THE DOWNLOAD PAGE: MAYBE INTERNET CONNECTION PROBLEM?")
-                log_errors.write("ERROR LOADING THE DOWNLOAD PAGE: MAYBE INTERNET CONNECTION PROBLEM?" + '\n')
-
-            browser.find_element_by_id('closeBtn').click()
             wait_random_time()
+            # END OF WHILE LOOP
+
+        wait_random_time()
+
+        browser.find_element_by_xpath('//*[@id="editsearch"]/span/a').click()
 
 # END OF manage_download FUNCTION
 
+
+def download(browser, limit, error):
+    """Download the files with this configuration and the given limit (range)"""
+
+    if not error:
+        # Press download section
+        browser.find_element_by_id('delivery_DnldRender').click()
+
+        time.sleep(5)
+
+    # Press Download Options
+    browser.find_element_by_xpath('//*[@id="tabs"]/ul/li[1]/a').click()
+
+    time.sleep(1)
+
+    # Set "Select Items"
+    if not browser.find_element_by_id('sel').is_selected():
+        browser.find_element_by_id('sel').click()
+
+    time.sleep(1)
+
+    browser.find_element_by_id('rangetextbox').clear()
+    browser.find_element_by_id('rangetextbox').send_keys(limit)
+
+    # Press Page Options
+    browser.find_element_by_xpath('//*[@id="tabs"]/ul/li[2]/a').click()
+
+    time.sleep(1)
+
+    # Set Cover Page true if it is not set
+    if not browser.find_element_by_id('cvpg').is_selected():
+        browser.find_element_by_id('cvpg').click()
+
+    time.sleep(1)
+
+    # Set List of included documents true if it is not set
+    if not browser.find_element_by_id('inclDocs').is_selected():
+        browser.find_element_by_id('inclDocs').click()
+
+    time.sleep(1)
+
+    # Set End Page true if it is not set
+    if not browser.find_element_by_id('endpg').is_selected():
+        browser.find_element_by_id('endpg').click()
+
+    time.sleep(1)
+
+    # Set Each Document on a new page if it is not set
+    if not browser.find_element_by_id('docnewpg').is_selected():
+        browser.find_element_by_id('docnewpg').click()
+
+    time.sleep(1)
+
+    # Press Format Options
+    browser.find_element_by_xpath('//*[@id="tabs"]/ul/li[3]/a').click()
+
+    time.sleep(1)
+
+    # Set document format to generic
+    browser.find_element_by_xpath('//*[@id="delFmt"]/option[3]').click()
+
+    time.sleep(1)
+
+    # Set font options to arial
+    browser.find_element_by_xpath('//*[@id="delFontType"]/option[1]').click()
+
+    time.sleep(1)
+
+    # Set Search terms in bold type to true, if it is false
+    if not browser.find_element_by_id('termBold').is_selected():
+        browser.find_element_by_id('termBold').click()
+
+    time.sleep(1)
+
+    # Set Search terms underlined to false, if it is true
+    if browser.find_element_by_id('termUnld').is_selected():
+        browser.find_element_by_id('termUnld').click()
+
+    time.sleep(1)
+
+    # Set deliver in two columns to false, if it is true
+    if browser.find_element_by_id('enhancedDelOption').is_selected():
+        browser.find_element_by_id('enhancedDelOption').click()
+
+    time.sleep(1)
+
+    # Press download
+    browser.find_element_by_xpath('//*[@id="deliv-dialogbox"]/form/div[2]/div/span[1]/a').click()
+
+
+# END OF download FUNCTION
 
 # def wait_by_id(browser, id, type):
 #    try:
@@ -483,9 +430,9 @@ def manage_download(browser):
 
 # END OF wait_by_id FUNCTION
 
-def wait_by_id(browser, id, type, errmsg):
+def wait_by_id(browser, elementid, ectype, errmsg):
     try:
-        WebDriverWait(browser, 120).until(type((By.ID, id)))
+        WebDriverWait(browser, 120).until(ectype((By.ID, elementid)))
     except TimeoutException:
         print(errmsg)
         log_errors.write(errmsg + '\n')
@@ -503,12 +450,13 @@ def wait_by_id(browser, id, type, errmsg):
 
 # END OF wait_by_xpath FUNCTION
 
-def wait_by_xpath(browser, xpath, type, errmsg):
+def wait_by_xpath(browser, xpath, ectype, errmsg):
     try:
-        WebDriverWait(browser, 120).until(type((By.XPATH, xpath)))
+        WebDriverWait(browser, 120).until(ectype((By.XPATH, xpath)))
     except TimeoutException:
         print(errmsg)
         log_errors.write(errmsg + '\n')
+
 
 # END OF wait_by_xpath FUNCTION
 
@@ -516,4 +464,4 @@ def wait_random_time():
     seconds = 5 + (random.random() * 5)
     time.sleep(seconds)
 
-# END OF wait_random_time FUNCTION
+    # END OF wait_random_time FUNCTION

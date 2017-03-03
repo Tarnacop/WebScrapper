@@ -3,7 +3,6 @@ import selenium.webdriver.support.expected_conditions as EC
 import utils
 import getpass
 import time
-import sys
 
 # Set the path to chromedriver
 path_to_chromedriver = 'res/chromedriver/chromedriver.exe'
@@ -111,6 +110,7 @@ utils.check_no_documents(browser)
 # Check if too many documents were found for the search
 
 utils.check_many_results(browser)
+
 
 # TODO - CREATE THE MAIN LOOP
 # TODO - CHANGE THE SEARCH TERMS
