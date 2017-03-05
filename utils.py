@@ -20,7 +20,6 @@ def checkmonth(month):
         return False
     return True
 
-
 # END OF checkmonth FUNCTION
 
 def checkyear(year):
@@ -264,67 +263,55 @@ def manage_download(browser):
     if search_result_count <= 500:
         initial = 1
         final = search_result_count
-
+    else:
+        initial = 1
+        final = 500
+    while initial <= search_result_count:
         limit = str(initial) + '-' + str(final)
         print(limit)  # TODO - CREATE LOG
 
         download(browser, limit, error)
 
+        # Wait for the closeBtn to show-up: if it does not show up, check for an error
         try:
-            WebDriverWait(browser, 600).until(EC.element_to_be_clickable((By.ID, 'closeBtn')))
-            browser.find_element_by_id('closeBtn').click()
+            WebDriverWait(browser, 120).until(EC.presence_of_element_located((By.ID, 'errorAlign')))
+            error_msg = str(browser.find_element_by_id('errorAlign').get_attribute('innerHTML'))
+            new_error_msg = error_msg.replace('.', '')
+            search_result_count = [int(i) for i in new_error_msg.split() if i.isdigit()][0]
+
+            error = True
+            print(
+                "After similarity analysis, the document number count is now " +
+                str(search_result_count) +
+                " . One or more of the document numbers you entered fell outside that range."
+            )
+
         except TimeoutException:
-            print("ERROR LOADING THE DOWNLOAD PAGE: MAYBE INTERNET CONNECTION PROBLEM?")
-            log_errors.write("ERROR LOADING THE DOWNLOAD PAGE: MAYBE INTERNET CONNECTION PROBLEM?" + '\n')
-
-        wait_random_time()
-        browser.find_element_by_xpath('//*[@id="editsearch"]/span/a').click()
-    else:
-        initial = 1
-        final = 500
-        while initial <= search_result_count:
-            limit = str(initial) + '-' + str(final)
-            print(limit)  # TODO - CREATE LOG
-
-            download(browser, limit, error)
-
-            # Wait for the closeBtn to show-up: if it does not show up, check for an error
             try:
                 WebDriverWait(browser, 600).until(EC.element_to_be_clickable((By.ID, 'closeBtn')))
                 browser.find_element_by_id('closeBtn').click()
 
                 error = False
             except TimeoutException:
-                try:
-                    error_msg = str(browser.find_element_by_id('errorAlign').get_attribute('innerHTML'))
-                    new_error_msg = error_msg.replace('.', '')
-                    search_result_count = [int(i) for i in new_error_msg.split() if i.isdigit()][0]
+                print("ERROR LOADING THE DOWNLOAD PAGE: MAYBE INTERNET CONNECTION PROBLEM?")
+                log_errors.write("ERROR LOADING THE DOWNLOAD PAGE: MAYBE INTERNET CONNECTION PROBLEM?" + '\n')
+                browser.quit()
+                sys.exit(1)
 
-                    error = True
-                    print(
-                        "After similarity analysis, the document number count is now " +
-                        str(search_result_count) +
-                        " . One or more of the document numbers you entered fell outside that range."
-                    )
-                except NoSuchElementException:
-                    print("ERROR LOADING THE DOWNLOAD PAGE: MAYBE INTERNET CONNECTION PROBLEM?")
-                    log_errors.write("ERROR LOADING THE DOWNLOAD PAGE: MAYBE INTERNET CONNECTION PROBLEM?" + '\n')
-                    # TODO - DO SOMETHING FOR ERRORS LIKE KILL SCRIPT
-
-            if not error:
-                initial += 500
-            difference = search_result_count - final
-            if difference <= 500:
-                final += difference
-            else:
-                final += 500
-
-            wait_random_time()
-            # END OF WHILE LOOP
+        if not error:
+            initial += 500
+        difference = search_result_count - final
+        if difference <= 500:
+            final += difference
+        else:
+            final += 500
 
         wait_random_time()
+        # END OF WHILE LOOP
 
-        browser.find_element_by_xpath('//*[@id="editsearch"]/span/a').click()
+    wait_random_time()
+
+    browser.find_element_by_xpath('//*[@id="editsearch"]/span/a').click()
 
 # END OF manage_download FUNCTION
 
@@ -436,6 +423,8 @@ def wait_by_id(browser, elementid, ectype, errmsg):
     except TimeoutException:
         print(errmsg)
         log_errors.write(errmsg + '\n')
+        browser.quit()
+        sys.exit(1)
 
 
 # END OF wait_by_id FUNCTION
@@ -456,7 +445,8 @@ def wait_by_xpath(browser, xpath, ectype, errmsg):
     except TimeoutException:
         print(errmsg)
         log_errors.write(errmsg + '\n')
-
+        browser.quit()
+        sys.exit(1)
 
 # END OF wait_by_xpath FUNCTION
 
@@ -465,3 +455,107 @@ def wait_random_time():
     time.sleep(seconds)
 
     # END OF wait_random_time FUNCTION
+
+def compare_dates(first_date, second_date):
+
+    first_date_split = first_date.split('/')
+    second_date_split = second_date.split('/')
+
+    first_year = int(first_date_split[2])
+    second_year = int(second_date_split[2])
+
+    if first_year > second_year:
+        return 1
+    elif first_year < second_year:
+        return -1
+
+    first_month = int(first_date_split[0])
+    second_month = int(second_date_split[0])
+
+    if first_month > second_month:
+        return 1
+    elif first_month < second_month:
+        return -1
+
+    first_day = int(first_date_split[1])
+    second_day = int(second_date_split[1])
+    if first_day > second_day:
+        return 1
+    elif first_day < second_day:
+       return -1
+
+    return 0
+
+# END OF compare_dates FUNCTION
+
+def get_month_ending(date):
+
+    date_split = date.split('/')
+    month = int(date_split[0])
+    year = int(date_split[2])
+    new_date = ''
+    if month == 1:
+        new_date =  '0' + str(month) +'/31/' + str(year)
+    elif month == 2:
+        if year % 4 == 0:
+            new_date = '0' + str(month) + '/29/' + str(year)
+        else:
+            new_date = '0' + str(month) + '/28/' + str(year)
+    elif month == 3:
+        new_date = '0' + str(month) + '/31/' + str(year)
+    elif month == 4:
+        new_date = '0' + str(month) + '/30/' + str(year)
+    elif month == 5:
+        new_date = '0' + str(month) + '/31/' + str(year)
+    elif month == 6:
+        new_date = '0' + str(month) + '/30/' + str(year)
+    elif month == 7:
+        new_date = '0' + str(month) + '/31/' + str(year)
+    elif month == 8:
+        new_date = '0' + str(month) + '/31/' + str(year)
+    elif month == 9:
+        new_date = '0' + str(month) + '/30/' + str(year)
+    elif month == 10:
+        new_date = '0' + str(month) + '/31/' + str(year)
+    elif month == 11:
+        new_date = '0' + str(month) + '/30/' + str(year)
+    elif month == 12:
+        new_date = '0' + str(month) + '/31/' + str(year)
+
+    return new_date
+# END OF get_month_ending FUNCTION
+
+def get_next_month_beginning(date):
+
+    date_split = date.split('/')
+    month = int(date_split[0])
+    year = int(date_split[2])
+
+    new_date = ''
+    if month == 1:
+        new_date = '0' + str(month + 1) + '/01/' + str(year)
+    elif month == 2:
+        new_date = '0' + str(month + 1) + '/01/' + str(year)
+    elif month == 3:
+        new_date = '0' + str(month + 1) + '/01/' + str(year)
+    elif month == 4:
+        new_date = '0' + str(month + 1) + '/01/' + str(year)
+    elif month == 5:
+        new_date = '0' + str(month + 1) + '/01/' + str(year)
+    elif month == 6:
+        new_date = '0' + str(month + 1) + '/01/' + str(year)
+    elif month == 7:
+        new_date = '0' + str(month + 1) + '/01/' + str(year)
+    elif month == 8:
+        new_date = '0' + str(month + 1) + '/01/' + str(year)
+    elif month == 9:
+        new_date = str(month + 1) + '/01/' + str(year)
+    elif month == 10:
+        new_date = str(month + 1) + '/01/' + str(year)
+    elif month == 11:
+        new_date = str(month + 1) + '/01/' + str(year)
+    elif month == 12:
+        new_date = '01/31/' + str(year + 1)
+
+    return new_date
+# END OF get_next_month_beginning FUNCTIOn
