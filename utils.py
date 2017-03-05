@@ -516,11 +516,11 @@ def get_month_ending(date):
     elif month == 9:
         new_date = '0' + str(month) + '/30/' + str(year)
     elif month == 10:
-        new_date = '0' + str(month) + '/31/' + str(year)
+        new_date =  str(month) + '/31/' + str(year)
     elif month == 11:
-        new_date = '0' + str(month) + '/30/' + str(year)
+        new_date = str(month) + '/30/' + str(year)
     elif month == 12:
-        new_date = '0' + str(month) + '/31/' + str(year)
+        new_date = str(month) + '/31/' + str(year)
 
     return new_date
 # END OF get_month_ending FUNCTION
