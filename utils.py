@@ -1,11 +1,16 @@
 import sys
 import time
 import random
+import os
 
 import selenium.webdriver.support.expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+
+path_to_log = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+if not os.path.isdir(path_to_log):
+    os.mkdir(path_to_log)
 
 path_to_log = 'logs/log_errors_' + str(random.randint(0, 10000000)) + '.txt'
 log_errors = open(path_to_log, mode='a')

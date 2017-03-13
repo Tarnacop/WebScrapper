@@ -1,12 +1,18 @@
-import utils, getpass, time, os, shutil
+import utils
+import getpass
+import time
+import os
+import shutil
 
 from selenium import webdriver
 import selenium.webdriver.support.expected_conditions as EC
 
-
 utils.print_path_to_log()
 
 path_to_downloads = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'downloads')
+if not os.path.isdir(path_to_downloads):
+    os.mkdir(path_to_downloads)
+
 chrome_options = webdriver.ChromeOptions()
 prefs = {'download.default_directory': path_to_downloads}
 chrome_options.add_experimental_option('prefs', prefs)
@@ -34,7 +40,6 @@ user = input('PROVIDE YOUR UOB ID: ')
 print(user)
 print("ID PROVIDED")
 pwd = getpass.getpass('PROVIDE YOUR UOB PASSWORD: ')
-print(pwd)
 print("PASSWORD PROVIDED")
 
 # Login to canvas
@@ -116,7 +121,8 @@ while not script_done:
     fromDateAux = fromDate
     toDateAux = utils.get_month_ending(fromDateAux)
 
-    os.mkdir(os.path.join(path_to_downloads, searchterm))
+    if not os.path.isdir(os.path.join(path_to_downloads, searchterm)):
+        os.mkdir(os.path.join(path_to_downloads, searchterm))
     while utils.compare_dates(toDateAux, toDate) != 1:
 
         print("FROM: " + fromDateAux + " TO: " + toDateAux)
