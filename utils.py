@@ -575,7 +575,7 @@ def get_next_month_beginning(date):
     elif month == 11:
         new_date = str(month + 1) + '/01/' + str(year)
     elif month == 12:
-        new_date = '01/31/' + str(year + 1)
+        new_date = '01/01/' + str(year + 1)
 
     return new_date
 # END OF get_next_month_beginning FUNCTIOn
