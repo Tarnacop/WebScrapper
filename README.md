@@ -1,2 +1,2 @@
-# WebScrapper
-A WebScrapper for LexusNexis
+# WebScraper
+A WebScraper for LexusNexis
